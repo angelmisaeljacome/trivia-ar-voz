@@ -15,6 +15,7 @@
     <div id="trivia-hud">
         <h3 id="pregunta-titulo">Cargando pregunta...</h3>
         <p id="pregunta-texto">Espere un momento...</p>
+        <p id="tiempo-pregunta" style="display:none;">Tiempo: 10s</p>
         <p><small id="estado-texto">Escucha la pregunta...</small></p>
         <button id="btn-reiniciar" style="display:none;" onclick="reiniciarJuego()">Reiniciar Juego</button>
     </div>
@@ -24,20 +25,20 @@
         
         <!-- 1. MARCADOR HIRO (Avatar del Usuario) -->
         <a-marker preset="hiro">
-            <a-entity id="objeto-avatar" scale="0.4 0.4 0.4" position="0 0 0" animation="property: rotation; to: 0 360 0; loop: true; dur: 6000"></a-entity>
+            <a-entity id="objeto-avatar" scale="0.07 0.07 0.07" position="0 0 0" rotation="0 90 0"></a-entity>
             <!-- Barra / Texto de vida flotante sobre el Avatar -->
             <a-text id="texto-vida-avatar" value="Avatar: 100%" position="0 1.2 0" align="center" color="#28a745" scale="1.5 1.5 1.5" look-at="[camera]"></a-text>
         </a-marker>
 
         <!-- 2. MARCADOR KANJI (Enemigo 1) -->
         <a-marker preset="kanji">
-            <a-entity id="objeto-enemigo-1" scale="0.4 0.4 0.4" position="0 0 0" animation="property: rotation; to: 0 360 0; loop: true; dur: 6000"></a-entity>
+            <a-entity id="objeto-enemigo-1" scale="0.07 0.07 0.07" position="0 0 0" rotation="0 -90 0"></a-entity>
             <a-text id="texto-vida-e1" value="Enemigo 1: 100%" position="0 1.2 0" align="center" color="#dc3545" scale="1.5 1.5 1.5" look-at="[camera]"></a-text>
         </a-marker>
 
-        <!-- 3. MARCADOR CÓDIGO DE BARRAS 1 (Enemigo 2) -->
+        <!-- 3. MARCADOR CÓDIGO DE BARRAS 1 (Enemigo 2 si se implementa) -->
         <a-marker type="barcode" value="1">
-            <a-entity id="objeto-enemigo-2" scale="0.4 0.4 0.4" position="0 0 0" animation="property: rotation; to: 0 360 0; loop: true; dur: 6000"></a-entity>
+            <a-entity id="objeto-enemigo-2" scale="0.15 0.15 0.15" position="0 0 0" rotation="0 -90 0"></a-entity>
             <a-text id="texto-vida-e2" value="Enemigo 2: 100%" position="0 1.2 0" align="center" color="#dc3545" scale="1.5 1.5 1.5" look-at="[camera]"></a-text>
         </a-marker>
 

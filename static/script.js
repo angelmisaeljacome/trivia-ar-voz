@@ -1,22 +1,128 @@
-const modeloEspera = '/static/espera.glb';
-const modeloCorrecto = '/static/correcto.glb';
-const modeloIncorrecto = '/static/incorrecto.glb';
-
 let estadoActual = null;
 let esperandoRespuesta = false;   // true solo mientras el micrófono debe estar activo
 let recognition = null;
 let sesionVoz = 0;                // ID de la instancia de reconocimiento vigente
 let hablaId = 0;                  // ID de la locución vigente
+let transicionEnemigoTimer = null;
+let intervaloPregunta = null;     // actualiza el contador de 10s en pantalla
+let tiempoRestantePregunta = 10;
 const utterancesVivos = [];       // evita que el navegador los elimine antes de terminar
 
+const DURACION_PREGUNTA_SEG = 10;
+const DURACION_ENEMIGO_ELIMINADO_MS = 4000;
+
 window.addEventListener('DOMContentLoaded', () => {
-    asignarModelosIniciales();
     cargarEstadoInicial();
 });
 
-/* ===================== INICIO / REINICIO ===================== */
+// MODELOS.GLB
+
+function rutaModeloJugador(estadoJugador) {
+    const mapa = {
+        espera: '/static/caballeroEspera.glb',
+        correcto: '/static/caballeroCorrecto.glb',
+        incorrecto: '/static/caballeroIncorrecto.glb',
+        perder: '/static/caballeroPerder.glb',
+        victoria: '/static/caballeroVictoria.glb',
+    };
+    return mapa[estadoJugador] || '/static/caballeroEspera.glb';
+}
+
+function rutaModeloEnemigo(enemigo, resultado) {
+    if (!enemigo) return '/static/zombieEspera.glb';
+    if (enemigo.derrotado) return '/static/EnemigoEliminado.glb';
+
+    const sufijo = resultado === 'correcto' ? 'Correcto'
+                 : resultado === 'incorrecto' ? 'Incorrecto'
+                 : 'Espera';
+    return `/static/${enemigo.clave_modelo}${sufijo}.glb`;
+}
+
+function aplicarModelos(data) {
+    const avatar = document.getElementById('objeto-avatar');
+    const enemigoObj = document.getElementById('objeto-enemigo-1');
+
+    if (avatar) {
+        avatar.setAttribute('visible', 'true');
+        avatar.setAttribute('gltf-model', rutaModeloJugador(data.modelo_jugador_estado));
+    }
+
+    if (enemigoObj && data.enemigo) {
+        enemigoObj.setAttribute('visible', 'true');
+        enemigoObj.setAttribute('gltf-model', rutaModeloEnemigo(data.enemigo, data.resultado));
+    }
+}
+
+function actualizarVidas(data) {
+    const txtAvatar = document.getElementById('texto-vida-avatar');
+    if (txtAvatar) {
+        txtAvatar.setAttribute('value', `Caballero: ${data.vida_avatar}%`);
+    }
+
+    const txtEnemigo = document.getElementById('texto-vida-e1');
+    if (txtEnemigo && data.enemigo) {
+        const etiquetaJefe = data.enemigo.es_jefe ? ' [JEFE]' : '';
+        if (data.enemigo.derrotado || data.enemigo.vida <= 0) {
+            txtEnemigo.setAttribute('value', `${data.enemigo.nombre}: Eliminado`);
+        } else {
+            txtEnemigo.setAttribute(
+                'value',
+                `${data.enemigo.nombre}${etiquetaJefe}: ${data.enemigo.vida}% (${data.enemigo.aciertos}/${data.enemigo.meta_aciertos})`
+            );
+        }
+    }
+}
+
+//TEMPORIZADOR DE PREGUNTA
+
+function actualizarTextoTiempo() {
+    const elTiempo = document.getElementById('tiempo-pregunta');
+    if (!elTiempo) return;
+    elTiempo.style.display = 'block';
+    elTiempo.innerText = `Tiempo: ${tiempoRestantePregunta}s`;
+}
+
+function ocultarTiempoPregunta() {
+    const elTiempo = document.getElementById('tiempo-pregunta');
+    if (elTiempo) {
+        elTiempo.style.display = 'none';
+    }
+}
+
+function detenerTemporizadorPregunta() {
+    if (intervaloPregunta) {
+        clearInterval(intervaloPregunta);
+        intervaloPregunta = null;
+    }
+}
+
+function iniciarTemporizadorPregunta() {
+    detenerTemporizadorPregunta();
+    tiempoRestantePregunta = DURACION_PREGUNTA_SEG;
+    actualizarTextoTiempo();
+
+    intervaloPregunta = setInterval(() => {
+        if (!esperandoRespuesta || (estadoActual && estadoActual.juego_terminado)) {
+            detenerTemporizadorPregunta();
+            return;
+        }
+
+        tiempoRestantePregunta--;
+        actualizarTextoTiempo();
+
+        if (tiempoRestantePregunta <= 0) {
+            detenerTemporizadorPregunta();
+            detenerEscucha();
+            // Tiempo agotado: se envía vacío para activar el flujo normal de pérdida de vida
+            enviarRespuestaAlServidor("");
+        }
+    }, 1000);
+}
+
+//INICIO Y REINICIO
 
 function cargarEstadoInicial() {
+    limpiarTemporizadores();
     fetch('/api/estado')
         .then(res => res.json())
         .then(data => {
@@ -28,31 +134,32 @@ function cargarEstadoInicial() {
 }
 
 function reiniciarJuego() {
+    limpiarTemporizadores();
     detenerEscucha();
     detenerHabla();
+
     fetch('/api/reiniciar', { method: 'POST' })
         .then(res => res.json())
         .then(() => {
-            asignarModelosIniciales();
             document.getElementById('btn-reiniciar').style.display = 'none';
             cargarEstadoInicial();
-        });
+        })
+        .catch(err => console.error("Error reiniciando juego:", err));
 }
 
-function asignarModelosIniciales() {
-    ['objeto-avatar', 'objeto-enemigo-1', 'objeto-enemigo-2'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.setAttribute('gltf-model', modeloEspera);
-            el.setAttribute('visible', 'true');
-        }
-    });
+function limpiarTemporizadores() {
+    if (transicionEnemigoTimer) {
+        clearTimeout(transicionEnemigoTimer);
+        transicionEnemigoTimer = null;
+    }
+    detenerTemporizadorPregunta();
+    ocultarTiempoPregunta();
 }
 
-/* ===================== VOZ: HABLAR ===================== */
+// VOZ (HABLAR)
 
 function detenerHabla() {
-    hablaId++; // invalida callbacks pendientes
+    hablaId++;
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 }
 
@@ -81,7 +188,7 @@ function hablar(texto, callbackFin) {
         const idx = utterancesVivos.indexOf(u);
         if (idx > -1) utterancesVivos.splice(idx, 1);
 
-        if (miId !== hablaId) return; // otra locución tomó el relevo
+        if (miId !== hablaId) return;
         setTimeout(() => {
             if (miId === hablaId && callbackFin) callbackFin();
         }, 300);
@@ -90,19 +197,17 @@ function hablar(texto, callbackFin) {
     u.onend = terminar;
     u.onerror = terminar;
 
-    // Seguridad: si el navegador nunca dispara onend, continuamos igual
-    watchdog = setTimeout(terminar, Math.max(4000, texto.length * 130));
+    watchdog = setTimeout(terminar, Math.max(6000, texto.length * 220));
 
-    // Pequeña pausa tras cancel() para que Chrome no se confunda
     setTimeout(() => {
         if (miId === hablaId) synth.speak(u);
     }, 100);
 }
 
-/* ===================== VOZ: ESCUCHAR ===================== */
+// VOZ (ESCUCHAR)
 
 function detenerEscucha() {
-    sesionVoz++; // los eventos de la instancia anterior quedan ignorados
+    sesionVoz++;
     esperandoRespuesta = false;
     if (recognition) {
         try { recognition.abort(); } catch (e) {}
@@ -119,7 +224,6 @@ function iniciarEscucha() {
         return;
     }
 
-    // Limpiar instancia previa sin tocar el flag esperandoRespuesta
     sesionVoz++;
     if (recognition) {
         try { recognition.abort(); } catch (e) {}
@@ -142,6 +246,8 @@ function iniciarEscucha() {
         const texto = event.results[0][0].transcript.toLowerCase();
         console.log("Usuario dijo:", texto);
         detenerEscucha();
+        detenerTemporizadorPregunta();
+        ocultarTiempoPregunta();
         enviarRespuestaAlServidor(texto);
     };
 
@@ -155,7 +261,6 @@ function iniciarEscucha() {
 
     rec.onend = function () {
         if (!esVigente()) return;
-        // Silencio o sin resultado: volver a escuchar
         setTimeout(() => {
             if (esVigente()) iniciarEscucha();
         }, 300);
@@ -172,23 +277,37 @@ function iniciarEscucha() {
     }
 }
 
-/* ===================== FLUJO DEL JUEGO ===================== */
+//FLUJO DEL JUEGO 
 
 function leerPreguntaYEscuchar(data) {
-    detenerEscucha(); // el micrófono se apaga mientras el asistente habla
+    detenerEscucha();
+    detenerTemporizadorPregunta();
+    ocultarTiempoPregunta();
 
     document.getElementById('pregunta-titulo').innerText = `Pregunta #${data.numero_pregunta}`;
     document.getElementById('pregunta-texto').innerText = data.pregunta_texto;
-    document.getElementById('estado-texto').innerText = "Leyendo pregunta...";
-    cambiarModelos(modeloEspera, data);
+    document.getElementById('estado-texto').innerText = data.mensaje || "Leyendo pregunta...";
+
+    // Al leer la nueva pregunta, volvemos a estado de espera visual si el juego sigue
+    const dataEspera = {
+        ...data,
+        resultado: null,
+        modelo_jugador_estado: data.juego_terminado ? data.modelo_jugador_estado : 'espera'
+    };
+    aplicarModelos(dataEspera);
 
     hablar(`Siguiente pregunta: ${data.pregunta_texto}`, () => {
-        esperandoRespuesta = true;
-        iniciarEscucha();
+        if (!estadoActual || !estadoActual.juego_terminado) {
+            esperandoRespuesta = true;
+            iniciarEscucha();
+            iniciarTemporizadorPregunta();
+        }
     });
 }
 
 function enviarRespuestaAlServidor(texto) {
+    detenerTemporizadorPregunta();
+    ocultarTiempoPregunta();
     document.getElementById('estado-texto').innerText = "Procesando...";
 
     fetch('/api/responder', {
@@ -200,66 +319,53 @@ function enviarRespuestaAlServidor(texto) {
         .then(data => manejarResultado(data))
         .catch(err => {
             console.error("Error enviando respuesta:", err);
-            // Reintentar la escucha para no quedar bloqueado
             esperandoRespuesta = true;
             iniciarEscucha();
+            iniciarTemporizadorPregunta();
         });
 }
 
 function manejarResultado(data) {
     estadoActual = data;
     actualizarVidas(data);
+    aplicarModelos(data);
+    document.getElementById('estado-texto').innerText = data.mensaje;
 
-    const modelo = data.resultado === 'correcto' ? modeloCorrecto : modeloIncorrecto;
-    cambiarModelos(modelo, data);
-    document.getElementById('estado-texto').innerText =
-        data.resultado === 'correcto' ? "✅ ¡Correcto!" : "❌ Incorrecto";
-
+    // Fin del juego: victoria (caballeroVictoria) o derrota (caballeroPerder)
     if (data.juego_terminado) {
-        document.getElementById('estado-texto').innerText = data.mensaje;
+        detenerEscucha();
+        detenerTemporizadorPregunta();
+        ocultarTiempoPregunta();
         document.getElementById('btn-reiniciar').style.display = 'block';
         hablar(data.mensaje);
         return;
     }
 
+    // Enemigo eliminado: muestra EnemigoEliminado.glb y caballeroCorrecto por 4s antes de pasar pregunta
+    if (data.evento === 'enemigo_eliminado') {
+        detenerEscucha();
+        detenerTemporizadorPregunta();
+        ocultarTiempoPregunta();
+
+        hablar(data.mensaje, () => {
+            transicionEnemigoTimer = setTimeout(() => {
+                fetch('/api/siguiente-enemigo', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(nuevoEstado => {
+                        estadoActual = nuevoEstado;
+                        actualizarVidas(nuevoEstado);
+                        leerPreguntaYEscuchar(nuevoEstado);
+                    })
+                    .catch(err => console.error("Error cargando siguiente enemigo:", err));
+            }, DURACION_ENEMIGO_ELIMINADO_MS);
+        });
+        return;
+    }
+
+    //Turno normal (acierto o fallo sin eliminar ni terminar partida)
     const feedback = data.resultado === 'correcto'
-        ? "¡Correcto! Ataque exitoso."
-        : "Incorrecto. Tu avatar pierde vida.";
+        ? "¡Correcto! El ataque acierta"
+        : `Incorrecto. Llevas ${data.fallos_jugador} de ${data.max_fallos_jugador} fallos.`;
 
-    // Al terminar de hablar el resultado, pasa a la nueva pregunta
     hablar(feedback, () => leerPreguntaYEscuchar(data));
-}
-
-/* ===================== VISUAL ===================== */
-
-function cambiarModelos(urlModelo, data) {
-    const avatar = document.getElementById('objeto-avatar');
-    if (avatar) avatar.setAttribute('gltf-model', urlModelo);
-
-    data.enemigos.forEach((enemigo, index) => {
-        const obj = document.getElementById(`objeto-enemigo-${index + 1}`);
-        if (obj && enemigo.activo) obj.setAttribute('gltf-model', urlModelo);
-    });
-}
-
-function actualizarVidas(data) {
-    const txtAvatar = document.getElementById('texto-vida-avatar');
-    if (txtAvatar) txtAvatar.setAttribute('value', `Avatar: ${data.vida_avatar}%`);
-
-    data.enemigos.forEach((enemigo, index) => {
-        const num = index + 1;
-        const txt = document.getElementById(`texto-vida-e${num}`);
-        const obj = document.getElementById(`objeto-enemigo-${num}`);
-
-        if (!enemigo.activo || enemigo.vida <= 0) {
-            if (txt) txt.setAttribute('value', 'Derrotado 💀');
-            if (obj) {
-                obj.removeAttribute('gltf-model');
-                obj.setAttribute('visible', 'false');
-            }
-        } else {
-            if (txt) txt.setAttribute('value', `Enemigo ${num}: ${enemigo.vida}%`);
-            if (obj) obj.setAttribute('visible', 'true');
-        }
-    });
 }
