@@ -3,11 +3,30 @@ import random
 
 app = Flask(__name__)
 
+# Banco de preguntas (agrega más para más variedad).
+# "respuestas" admite varias formas de decir lo mismo.
 preguntas_originales = [
-    {"pregunta": "Decir verdadero", "respuestas": ["verdadero"]},
-    {"pregunta": "Decir falso", "respuestas": ["falso"]},
-    {"pregunta": "Decir verdadero 2", "respuestas": ["verdadero"]},
-    {"pregunta": "Decir falso 2", "respuestas": ["falso"]},
+    {"pregunta": "En una CLI, el paradigma de interfaz de línea de comandos, un shell y un emulador de terminal son exactamente lo mismo", "respuestas": ["falso"]},
+    {"pregunta": "Los servidores Linux suelen utilizar únicamente interfaz de línea de comandos porque consume menos espacio en disco, memoria RAM que las interfaces gráficas", "respuestas": ["verdadero"]},
+    {"pregunta": "Las interfaces gráficas de usuario se programan de forma estrictamente lineal y no requieren programación basada en eventos", "respuestas": ["falso"]},
+    {"pregunta": "El diseño de una NUI busca hacer que la interfaz sea natural para todos los usuarios indistintamente, sin importar el contexto", "respuestas": ["falso"]},
+    {"pregunta": "A diferencia del teclado o el mouse, las NUI suelen ser multicanal, inexactas y de gran ancho de banda", "respuestas": ["verdadero"]},
+    {"pregunta": "En el aprendizaje progresivo de una NUI, se debe obligar a los usuarios expertos a recorrer el mismo camino paso a paso que a los principiantes", "respuestas": ["falso"]},
+    {"pregunta": "Las interfaces adaptativas son configuradas manualmente por el usuario, mientras que las adaptables se ajustan automáticamente mediante algoritmos o reglas", "respuestas": ["falso"]},
+    {"pregunta": "Dentro de los 7 Principios del Diseño Universal, el principio de tolerancia al error busca minimizar los riesgos y consecuencias adversas de acciones involuntarias o accidentales", "respuestas": ["verdadero"]},
+    {"pregunta": "Las VUI funcionan exclusivamente mediante el reconocimiento automático del habla, sin necesitar procesamiento del lenguaje natural", "respuestas": ["falso"]},
+    {"pregunta": "Los sistemas de respuesta de voz interactiva en atención al cliente son un ejemplo de aplicación de las VUI", "respuestas": ["verdadero"]},
+    {"pregunta": "El modelo de seguimiento de manos de MediaPipe detecta 21 puntos de referencia en cada mano", "respuestas": ["verdadero"]},
+    {"pregunta": "La interacción gestual directa ocurre en el aire sin necesidad de una superficie física, como girar un dedo en el espacio", "respuestas": ["falso"]},
+    {"pregunta": "La consola Virtual Boy de Nintendo proyectaba un efecto 3D a todo color y tuvo un gran éxito comercial en Europa y Australia", "respuestas": ["falso"]},
+    {"pregunta": "El término Realidad Aumentada fue acuñado en 1992 por Thomas P. Caudell en el contexto del ensamblaje de aeronaves como el Boeing 747", "respuestas": ["verdadero"]},
+    {"pregunta": "La RA basada en marcadores/reconocimiento se originó en las etiquetas y códigos de barras, evolucionando hacia los códigos QR para proyectar objetos virtuales", "respuestas": ["verdadero"]},
+    {"pregunta": "la Realidad Virtual Mixta permite percibir simultáneamente elementos reales y virtuales e incluso que objetos físicos sirvan de interacción", "respuestas": ["verdadero"]},
+    {"pregunta": "La biometría permite autenticar a una persona basándose en quién es, en lugar de lo que posee o lo que recuerda", "respuestas": ["verdadero"]},
+    {"pregunta": "El reconocimiento de voz, la dinámica de tecleo y la firma manuscrita se clasifican como características biométricas fisiológicas", "respuestas": ["falso"]},
+    {"pregunta": "Una desventaja de la biometría es que un rasgo biométrico no puede cambiarse fácilmente si se ve comprometido.", "respuestas": ["verdadero"]},
+    {"pregunta": "En el diseño de una VUI, es recomendable saturar al usuario con la mayor cantidad de información posible para que conozca todas las funciones desde el inicio", "respuestas": ["falso"]},
+    {"pregunta": "Los pasos básicos del proceso de realidad aumentada indicados en la presentación son: detección y seguimiento, procesamiento y reconocimiento, y renderizado y visualización", "respuestas": ["verdadero"]},
 ]
 
 # <clave>Espera.glb, <clave>Correcto.glb, <clave>Incorrecto.glb
