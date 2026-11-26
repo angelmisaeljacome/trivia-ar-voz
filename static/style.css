@@ -4,18 +4,18 @@
     left: 50%;
     transform: translateX(-50%);
     z-index: 9999;
-    background: rgba(0, 0, 0, 0.85);
+    background-image: url("./img/fondo.jpg");
     color: white;
     padding: 10px 20px;
     border-radius: 10px;
     font-family: sans-serif;
     width: 320px;
     text-align: center;
-    border-bottom: 4px solid #007AFF;
+    border-bottom: 4px solid #ff8c00;
     box-shadow: 0 4px 15px rgba(0,0,0,0.5);
 }
 
-#trivia-hud h3 { margin: 0 0 4px 0; font-size: 14px; color: #00d2ff; }
+#trivia-hud h3 { margin: 0 0 4px 0; font-size: 14px; color: #ff8c00; }
 #trivia-hud p { margin: 2px 0; font-size: 11px; }
 
 #btn-reiniciar {
@@ -60,6 +60,7 @@ video {
 /* Variable CSS para cambiar la imagen de fondo de los paneles fácilmente */
 :root {
     --fondo-panel-inicio: url("./img/fondo.jpg");
+
 }
 
 /* Paneles tipo Inicio (Inicio y Jugar de nuevo) */
@@ -91,11 +92,11 @@ video {
 .titulo-inicio {
     margin: 0;
     font-family: "Optimus Princeps", "Cinzel", Georgia, serif;
-    font-size: clamp(28px, 5vw, 48px);
+    font-size: clamp(28px, 5vw, 56px);
     font-weight: 400;
     letter-spacing: 2px;
     color: #ffffff;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+    text-shadow: 0 0 0.2em #ff8c00, 0 0 0.2em #000000, 3px -3px 6px rgba(255, 165, 0, 0.85);
 }
 
 /* Botones naranja con borde amarillo */
@@ -116,6 +117,43 @@ video {
 .btn-inicio:hover {
     filter: brightness(1.06);
     transform: scale(1.02);
+}
+
+/* Paneles final tras ganar o perder */
+.panel-final {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10001;
+    width: 82%;
+    max-width: 640px;
+    min-height: 320px;
+    padding: 36px 32px;
+    box-sizing: border-box;
+    border-radius: 16px;
+    background-image: var(--fondo-panel-inicio);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #000000;
+    opacity: 0.72;
+    display: flex;
+    flex-direction: column;
+    justify-content: center !important;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+}
+
+.titulo-final {
+    margin: 0;
+    font-family: "Optimus Princeps", "Cinzel", Georgia, serif;
+    font-size: clamp(28px, 5vw, 56px);
+    font-weight: 400;
+    letter-spacing: 2px;
+    color: #ffffff;
+    text-shadow: 0 0 0.2em #ff8c00, 0 0 0.2em #000000, 3px -3px 6px rgba(255, 165, 0, 0.85);
 }
 
 .acciones-finales {
@@ -160,8 +198,9 @@ video {
 .etiqueta-vida {
     font-family: "Optimus Princeps", "Cinzel", Georgia, serif;
     font-size: clamp(18px, 2.8vw, 32px);
-    color: #000000;
+    color: #ffffff;
     line-height: 1.1;
+    text-shadow: 0 0 0.2em #ff8c00, 0 0 0.2em #000000, 3px -3px 6px rgba(255, 165, 0, 0.85);
 }
 
 .parte-inferior {
@@ -170,7 +209,7 @@ video {
     height: 24px;
 }
 
-/* Base de cada barra de vida dividida en 4 segmentos */
+/* Base de cada barra de vida dividida en 3 segmentos uniformes */
 .barra-vida {
     position: relative;
     width: 100%;
@@ -185,21 +224,23 @@ video {
 .barra-vida__relleno {
     position: absolute;
     top: 0;
-    left: 0;
     height: 100%;
     transition: width 0.2s ease;
 }
 
-/* Colores de relleno según entidad */
+/* Jugador: relleno anclado a la izquierda (disminuye de derecha a izquierda) */
 .barra-vida--jugador .barra-vida__relleno {
+    left: 0;
     background-color: #ff0000;
 }
 
+/* Enemigo: relleno anclado a la derecha (disminuye de izquierda a derecha) */
 .barra-vida--enemigo .barra-vida__relleno {
+    right: 0;
     background-color: #d438e6;
 }
 
-/* Líneas divisorias en 25%, 50% y 75% */
+/* Líneas divisorias uniformes en 1/3 y 2/3 */
 .barra-vida__division {
     position: absolute;
     top: 0;
@@ -209,13 +250,11 @@ video {
     z-index: 2;
 }
 
-.barra-vida__division--1 { left: 25%; }
-.barra-vida__division--2 { left: 50%; }
-.barra-vida__division--3 { left: 75%; }
+.barra-vida__division--1 { left: 33.3333%; }
+.barra-vida__division--2 { left: 66.6667%; }
 
-/* Estados de llenado (4/4, 3/4, 2/4, 1/4, 0/4) */
+/* Estados de llenado (3/3, 2/3, 1/3, 0/3) */
 .barra-vida--completa .barra-vida__relleno { width: 100%; }
-.barra-vida--tres-cuartos .barra-vida__relleno { width: 75%; }
-.barra-vida--dos-cuartos .barra-vida__relleno { width: 50%; }
-.barra-vida--un-cuarto .barra-vida__relleno { width: 25%; }
+.barra-vida--dos-tercios .barra-vida__relleno { width: 66.6667%; }
+.barra-vida--un-tercio .barra-vida__relleno { width: 33.3333%; }
 .barra-vida--vacia .barra-vida__relleno { width: 0%; }

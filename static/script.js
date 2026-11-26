@@ -7,38 +7,50 @@ let hablaId = 0;                  // ID de la locución vigente
 let transicionEnemigoTimer = null;
 let intervaloPregunta = null;     // actualiza el contador de 10s en pantalla
 let tiempoRestantePregunta = 10;
+let audioActual = null; // Representa al objeto que reproduce los audios cuando se gana o se pierde el juego
 const utterancesVivos = [];       // evita que el navegador los elimine antes de terminar
 
 // Dom elementos
-const btnPanelInicio = document.getElementById('pantalla-iniciar');
+const hudPreguntas = document.getElementById('trivia-hud');
+
+const panelInicio = document.getElementById('pantalla-inicio');
 const btnIniciar = document.getElementById('btn-iniciar');
 
+// Etiquetas de vida
+const etiquetasVida = document.getElementsByClassName('etiqueta-vida');
+
 // Barras de vida del jugador, tiene 5 versiones, cada una muestra un estado de la vida
-const barraVida4_4Jugador = document.getElementById('barra-jugador-completa');
-const barraVida3_4Jugador = document.getElementById('barra-jugador-3-4');
-const barraVida2_4Jugador = document.getElementById('barra-jugador-2-4');
-const barraVida1_4Jugador = document.getElementById('barra-jugador-1-4');
-const barraVidaVaciaJugador = document.getElementById('barra-jugador-0-4');
+const barraVidaLlenaJugador = document.getElementById('barra-jugador-completa');
+const barraVida2_3Jugador = document.getElementById('barra-jugador-2-3');
+const barraVida1_3Jugador = document.getElementById('barra-jugador-1-3');
+const barraVida0_3Jugador = document.getElementById('barra-jugador-0-3');
 
 // Barras de vida del enemigo, tiene 5 versiones, cada una muestra un estado de la vida
-const barraVida4_4Enemigo = document.getElementById('barra-enemigo-completa');
-const barraVida3_4Enemigo = document.getElementById('barra-enemigo-3-4');
-const barraVida2_4Enemigo = document.getElementById('barra-enemigo-2-4');
-const barraVida1_4Enemigo = document.getElementById('barra-enemigo-1-4');
-const barraVidaVaciaEnemigo = document.getElementById('barra-enemigo-0-4');
+const barraVidaLlenaEnemigo = document.getElementById('barra-enemigo-completa');
+const barraVida2_3Enemigo = document.getElementById('barra-enemigo-2-3');
+const barraVida1_3Enemigo = document.getElementById('barra-enemigo-1-3');
+const barraVida0_3Enemigo = document.getElementById('barra-enemigo-0-3');
 
-const panelReinicio = document.getElementById('pantalla-reinicio');
-const btnReiniciar = document.getElementById('btn-reintentar');
-const btnSalir = document.getElementById('btn-salir');
+const panelFinal = document.getElementById('pantalla-final');
+const tituloFinal = document.getElementById('mensaje-final')
 
 const DURACION_PREGUNTA_SEG = 10;
 const DURACION_ENEMIGO_ELIMINADO_MS = 4000;
 
-window.addEventListener('DOMContentLoaded', () => {
+// Bandera para iniciar el juego
+let juegoEnProgreso = false;
+
+btnIniciar.addEventListener('click', () => {
+    // Se cargan los elementos en pantalla y se oculta la ventana de inicio
+    cargarEstadoInicial();
+    panelInicio.style.display = "none"
+    hudPreguntas.style.display= "block"
+    Array.from(etiquetasVida).forEach(element =>{
+        element.style.display="block"
+    })
     
-        cargarEstadoInicial();
-    }
-);
+
+})
 
 // MODELOS.GLB
 
@@ -87,16 +99,19 @@ function aplicarModelos(data) {
 
 //  Actualiza el indicador de vida del avatar y del enemigo en Realidad virtual
 function actualizarVidas(data) {
-    //
+    // Se muestra en indicador de vida correcto para el jugador
     cambiarEstadoVidaJugador(data.vida_avatar);
+    console.log("La vida del jugador es: "+data.vida_avatar)
     //Inicializa el DOM
     const txtAvatar = document.getElementById('texto-vida-avatar');
     // Obtiene acceso al elemento y le otorga un nuevo valor, mediante el patron llave - valor
     if (txtAvatar) {
         txtAvatar.setAttribute('value', `Caballero: ${data.vida_avatar}%`);
     }
-
+    // Se muestra el indicador de vida correcto para el enemigo
     cambiarEstadoVidaEnemigo(data.enemigo.vida)
+    console.log("La vida del enemigo es: "+data.enemigo.vida)
+
     // Se accede al indicador de vida del enemigo y se actualiza
     const txtEnemigo = document.getElementById('texto-vida-e1');
     if (txtEnemigo && data.enemigo) {
@@ -150,7 +165,7 @@ function iniciarTemporizadorPregunta() {
     tiempoRestantePregunta = DURACION_PREGUNTA_SEG;
     // Se actualia el texto del indicador de tiempo para la pregunta
     actualizarTextoTiempo();
-    // Se verifica si el juega esta terminado entonces se detiene el temporizador y termina el flujo de ejecucion
+    // Se verifica si el juego esta terminado entonces se detiene el temporizador y termina el flujo de ejecucion
     intervaloPregunta = setInterval(() => {
         if (!esperandoRespuesta || (estadoActual && estadoActual.juego_terminado)) {
             detenerTemporizadorPregunta();
@@ -175,6 +190,8 @@ function iniciarTemporizadorPregunta() {
 
 // Funcion que realiza una solicitud al servidor y obtiene el estado inicial del juego
 function cargarEstadoInicial() {
+    // Desactiva el panel con el mensaje final
+    panelFinal.style.display="none"
     // Se limpia el indicador de tiempo actual
     limpiarTemporizadores();
     fetch('/api/estado')
@@ -203,6 +220,9 @@ function reiniciarJuego() {
             document.getElementById('btn-reiniciar').style.display = 'none';
             // Se carga el estado inicial de la historia
             cargarEstadoInicial();
+            // Se detienen los audios que se estan reproduciendo:
+            detenerAudio();
+
         })
         .catch(err => console.error("Error reiniciando juego:", err));
 }
@@ -381,7 +401,7 @@ function leerPreguntaYEscuchar(data) {
     });
 }
 
-// Funcion que realiza una solicitud al servidor y
+// Funcion que realiza una solicitud al servidor y se procesa el resultado
 function enviarRespuestaAlServidor(texto) {
     detenerTemporizadorPregunta();
     ocultarTiempoPregunta();
@@ -417,6 +437,20 @@ function manejarResultado(data) {
         ocultarTiempoPregunta();
         document.getElementById('btn-reiniciar').style.display = 'block';
         hablar(data.mensaje);
+        if(data.victoria){
+            panelFinal.style.display="flex"
+            tituloFinal.innerText="!!!GANASTE!!!";
+            reproducirAudio("/static/audio/ganar.mp3", ()=>{
+                console.log("Ganaste")
+            });
+        }else{
+            panelFinal.style.display="flex"
+            tituloFinal.innerText="PERDISTE";
+            reproducirAudio("/static/audio/perder.mp3", ()=>{
+                console.log("Perdiste")
+            });
+        }
+
         return;
     }
 
@@ -457,16 +491,16 @@ function cambiarEstadoVidaJugador(cantidadVida){
     })
 
     if(numVida >= 100){
-        barraVida4_4Jugador.style.display="block"
+        barraVidaLlenaJugador.style.display="block"
     }
     else if(numVida >= 67 && numVida < 100){
-        barraVida3_4Jugador.style.display="block"
+        barraVida2_3Jugador.style.display="block"
     }
-    else if(numVida >= 34 && numVida < 67 ){
-        barraVida2_4Jugador.style.display="block"
+    else if(numVida >= 33 && numVida < 67 ){
+        barraVida1_3Jugador.style.display="block"
     }
-    else if(numVida >= 1 && numVida < 34){
-        barraVida1_4Jugador.style.display="block"
+    else if(numVida < 33){
+        barraVida0_3Jugador.style.display="block"
     }
 }
 
@@ -478,15 +512,76 @@ function cambiarEstadoVidaEnemigo(cantidadVida){
     })
 
     if(numVida >= 100){
-        barraVida4_4Enemigo.style.display="block"
+        barraVidaLlenaEnemigo.style.display="block"
     }
     else if(numVida >= 67 && numVida < 100){
-        barraVida3_4Enemigo.style.display="block"
+        barraVida2_3Enemigo.style.display="block"
     }
-    else if(numVida >= 34 && numVida < 67 ){
-        barraVida2_4Enemigo.style.display="block"
+    else if(numVida >= 33 && numVida < 67 ){
+        barraVida1_3Enemigo.style.display="block"
     }
-    else if(numVida >= 1 && numVida < 34){
-        barraVida1_4Enemigo.style.display="block"
+    else if(numVida < 33){
+        barraVida0_3Enemigo.style.display="block"
+    }
+}
+
+// Funcion que reproduce un audio mediante una url (Reservado para cuando se gana o se pierde el juego), 
+// recibe la url y una funcion que realiza cuando se termina de reproducir el audio
+async function reproducirAudio(urlAudio, callbackFin) {
+    // Se levanta una bandera para gestionar el fin del audio
+    let reproduccionFinalizada = false;
+
+    // Funcion interna que modifica la bandera a true, para indicar que el audio ya termino de reproducirse
+    const finalizar = () => {
+        if (!reproduccionFinalizada) {
+            reproduccionFinalizada = true;
+            if (callbackFin) callbackFin();
+        }
+    };
+
+    try {
+        // Si no hay un url se arroja una excepccion
+        if (!urlAudio) {
+            throw new Error("La URL de audio no es válida.");
+        }
+
+        // Se crea una nueva entidad Audio y se almacena en la variable global
+        const audio = new Audio(urlAudio);
+        audioActual = audio;
+
+        // Cuando se termina de reproducir el audio la bandera cambia su valor a true
+        audio.addEventListener("ended", () => {
+            if (audioActual === audio) {
+                    audioActual = null;
+            }
+            finalizar();
+        });
+
+        // En caso de error tambien la bandera cambia a true.
+        audio.addEventListener("error", ()=>{
+            if (audioActual === audio) {
+                audioActual = null;
+            }
+            finalizar();
+        });
+
+        // await permite que try / catch capture si play() es rechazado (El navegador puede rechazar el audio )
+        await audio.play();
+    } catch (error) {
+        console.error("Error al intentar reproducir el audio:", error);
+        if (audioActual === audioActual) {
+            audioActual = null;
+        }
+        finalizar();
+    }
+}
+// Funcion que detiene el audio reproducido al ganar o perder el juego
+function detenerAudio() {
+    if (audioActual) {
+        audioActual.pause();
+        audioActual.currentTime = 0;
+        audioActual.removeAttribute("src");
+        audioActual.load();
+        audioActual = null;
     }
 }
