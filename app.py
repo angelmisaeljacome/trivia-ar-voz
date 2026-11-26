@@ -39,7 +39,7 @@ def crear_enemigo(plantilla):
         "derrotado": False,
     }
 
-
+# Funcion que busca preguntas que no se hayan mostrado y elige una aleatoria?
 def elegir_pregunta():
     if not logica["pendientes"]: #Preguntar si ya se acabaron las preguntas primero
         logica["pendientes"] = [
@@ -51,7 +51,7 @@ def elegir_pregunta():
     logica["actual"] = pregunta
     return pregunta
 
-
+# Se constuyen los datos que reiniciaran el juego a la normalidad
 def reiniciar_juego():
     global estado_juego, logica
     logica = {
@@ -97,6 +97,7 @@ def responder():
     if estado_juego["juego_terminado"]:
         return jsonify(estado_juego)
 
+    # Se recuperan los datos que envia el cliente
     data = request.get_json(silent=True) or {}
     texto_usuario = str(data.get("texto", "")).lower().strip()
     respuestas_validas = logica["actual"]["respuestas"]
@@ -130,7 +131,7 @@ def responder():
                 estado_juego["modelo_jugador_estado"] = "victoria"
                 estado_juego["mensaje"] = "VICTORIA"
                 return jsonify(estado_juego)
-
+            # Mensaje a enviar si se elimina a un enemigo
             logica["normales_derrotados"] += 1
             estado_juego["evento"] = "enemigo_eliminado"
             estado_juego["mensaje"] = f"¡{enemigo['nombre']} eliminado!"

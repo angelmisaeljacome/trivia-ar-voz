@@ -47,3 +47,175 @@ video {
 @media screen and (max-width: 768px) {
     #trivia-hud { top: 10px; width: 90%; max-width: 300px; padding: 8px 12px; }
 }
+
+/* Tipografía Optimus Princeps (cargar archivo local o fuente disponible) */
+@font-face {
+    font-family: "Optimus Princeps";
+    src: url("fonts/OptimusPrinceps.woff2") format("woff2"),
+         url("fonts/OptimusPrinceps.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* Variable CSS para cambiar la imagen de fondo de los paneles fácilmente */
+:root {
+    --fondo-panel-inicio: url("./img/fondo.jpg");
+}
+
+/* Paneles tipo Inicio (Inicio y Jugar de nuevo) */
+.panel-inicio {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10001;
+    width: 82%;
+    max-width: 640px;
+    min-height: 320px;
+    padding: 36px 32px;
+    box-sizing: border-box;
+    border-radius: 16px;
+    background-image: var(--fondo-panel-inicio);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #161618;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+}
+
+.titulo-inicio {
+    margin: 0;
+    font-family: "Optimus Princeps", "Cinzel", Georgia, serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 400;
+    letter-spacing: 2px;
+    color: #ffffff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+}
+
+/* Botones naranja con borde amarillo */
+.btn-inicio {
+    background-color: #f39c38;
+    color: #ffffff;
+    border: 2px solid #ffe600;
+    border-radius: 999px;
+    padding: 12px 34px;
+    min-width: 170px;
+    font-family: "Optimus Princeps", "Cinzel", Georgia, serif;
+    font-size: clamp(18px, 3vw, 26px);
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.btn-inicio:hover {
+    filter: brightness(1.06);
+    transform: scale(1.02);
+}
+
+.acciones-finales {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 24px;
+}
+
+/* Contenedor superior de HUD de vidas (izquierda y derecha) */
+.hud-vidas {
+    position: fixed;
+    top: 12px;
+    left: 0;
+    width: 100%;
+    padding: 0 16px;
+    box-sizing: border-box;
+    z-index: 10000;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+}
+
+.columna-vida {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 600px;
+    max-width: 36vw;
+}
+
+.parte-superior {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.etiqueta-vida {
+    font-family: "Optimus Princeps", "Cinzel", Georgia, serif;
+    font-size: clamp(18px, 2.8vw, 32px);
+    color: #000000;
+    line-height: 1.1;
+}
+
+.parte-inferior {
+    position: relative;
+    width: 100%;
+    height: 24px;
+}
+
+/* Base de cada barra de vida dividida en 4 segmentos */
+.barra-vida {
+    position: relative;
+    width: 100%;
+    height: 24px;
+    border-radius: 14px;
+    border: 1.5px solid #000000;
+    box-sizing: border-box;
+    overflow: hidden;
+    background-color: transparent;
+}
+
+.barra-vida__relleno {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    transition: width 0.2s ease;
+}
+
+/* Colores de relleno según entidad */
+.barra-vida--jugador .barra-vida__relleno {
+    background-color: #ff0000;
+}
+
+.barra-vida--enemigo .barra-vida__relleno {
+    background-color: #d438e6;
+}
+
+/* Líneas divisorias en 25%, 50% y 75% */
+.barra-vida__division {
+    position: absolute;
+    top: 0;
+    width: 1.5px;
+    height: 100%;
+    background-color: #000000;
+    z-index: 2;
+}
+
+.barra-vida__division--1 { left: 25%; }
+.barra-vida__division--2 { left: 50%; }
+.barra-vida__division--3 { left: 75%; }
+
+/* Estados de llenado (4/4, 3/4, 2/4, 1/4, 0/4) */
+.barra-vida--completa .barra-vida__relleno { width: 100%; }
+.barra-vida--tres-cuartos .barra-vida__relleno { width: 75%; }
+.barra-vida--dos-cuartos .barra-vida__relleno { width: 50%; }
+.barra-vida--un-cuarto .barra-vida__relleno { width: 25%; }
+.barra-vida--vacia .barra-vida__relleno { width: 0%; }

@@ -20,6 +20,7 @@
         <button id="btn-reiniciar" style="display:none;" onclick="reiniciarJuego()">Reiniciar Juego</button>
     </div>
 
+    </div>
     <!-- Escena AR con Marcadores y Texto Flotante 3D -->
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
         
@@ -45,6 +46,114 @@
         <a-entity camera></a-entity>
     </a-scene>
 
+    <!-- Pantalla inicial: TRIVIA SOULS -->
+    <div id="pantalla-inicio" class="panel-inicio" style="display: block;">
+        <h1 class="titulo-inicio">TRIVIA SOULS</h1>
+        <button id="btn-iniciar" class="btn-inicio">Iniciar</button>
+    </div>
+
+    <!-- Contenedor superior de HUD: "Tu vida" y "Enemigo" con zonas inferiores para barras -->
+    <div id="hud-vidas" class="hud-vidas">
+        <!-- Columna izquierda: Tu vida -->
+        <div class="columna-vida">
+            <div class="parte-superior">
+                <span class="etiqueta-vida">Tu vida</span>
+            </div>
+            <div id="contenedor-barra-jugador" class="parte-inferior">
+                <!-- Barra completa del jugador (visible por defecto) -->
+                <div id="barra-jugador-completa" class="barra-vida barra-vida--jugador barra-vida--completa" style="display: none;">
+                    <div class="barra-vida__relleno"></div>
+                    <span class="barra-vida__division barra-vida__division--1"></span>
+                    <span class="barra-vida__division barra-vida__division--2"></span>
+                    <span class="barra-vida__division barra-vida__division--3"></span>
+                </div>
+
+                <!-- Variantes de vida del jugador (ocultas por defecto) -->
+                <div id="barra-jugador-3-4" class="barra-vida barra-vida--jugador barra-vida--tres-cuartos" style="display: none;">
+                    <div class="barra-vida__relleno"></div>
+                    <span class="barra-vida__division barra-vida__division--1"></span>
+                    <span class="barra-vida__division barra-vida__division--2"></span>
+                    <span class="barra-vida__division barra-vida__division--3"></span>
+                </div>
+
+                <div id="barra-jugador-2-4" class="barra-vida barra-vida--jugador barra-vida--dos-cuartos" style="display: none;">
+                    <div class="barra-vida__relleno"></div>
+                    <span class="barra-vida__division barra-vida__division--1"></span>
+                    <span class="barra-vida__division barra-vida__division--2"></span>
+                    <span class="barra-vida__division barra-vida__division--3"></span>
+                </div>
+
+                <div id="barra-jugador-1-4" class="barra-vida barra-vida--jugador barra-vida--un-cuarto" style="display: none;">
+                    <div class="barra-vida__relleno"></div>
+                    <span class="barra-vida__division barra-vida__division--1"></span>
+                    <span class="barra-vida__division barra-vida__division--2"></span>
+                    <span class="barra-vida__division barra-vida__division--3"></span>
+                </div>
+
+                <div id="barra-jugador-0-4" class="barra-vida barra-vida--jugador barra-vida--vacia" style="display: none;">
+                    <div class="barra-vida__relleno"></div>
+                    <span class="barra-vida__division barra-vida__division--1"></span>
+                    <span class="barra-vida__division barra-vida__division--2"></span>
+                    <span class="barra-vida__division barra-vida__division--3"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna derecha: Enemigo -->
+        <div class="columna-vida">
+            <div class="parte-superior">
+                <span class="etiqueta-vida">Enemigo</span>
+            </div>
+            <div id="contenedor-barra-enemigo" class="parte-inferior">
+                <!-- Barra completa del enemigo (visible por defecto) -->
+                <div id="barra-enemigo-completa" class="barra-vida barra-vida--enemigo barra-vida--completa" style="display: none;">
+                    <div class="barra-vida__relleno"></div>
+                    <span class="barra-vida__division barra-vida__division--1"></span>
+                    <span class="barra-vida__division barra-vida__division--2"></span>
+                    <span class="barra-vida__division barra-vida__division--3"></span>
+                </div>
+
+                <!-- Variantes de vida del enemigo (ocultas por defecto) -->
+                <div id="barra-enemigo-3-4" class="barra-vida barra-vida--enemigo barra-vida--tres-cuartos" style="display: none;">
+                    <div class="barra-vida__relleno"></div>
+                    <span class="barra-vida__division barra-vida__division--1"></span>
+                    <span class="barra-vida__division barra-vida__division--2"></span>
+                    <span class="barra-vida__division barra-vida__division--3"></span>
+                </div>
+
+                <div id="barra-enemigo-2-4" class="barra-vida barra-vida--enemigo barra-vida--dos-cuartos" style="display: none;">
+                    <div class="barra-vida__relleno"></div>
+                    <span class="barra-vida__division barra-vida__division--1"></span>
+                    <span class="barra-vida__division barra-vida__division--2"></span>
+                    <span class="barra-vida__division barra-vida__division--3"></span>
+                </div>
+
+                <div id="barra-enemigo-1-4" class="barra-vida barra-vida--enemigo barra-vida--un-cuarto" style="display: none;">
+                    <div class="barra-vida__relleno"></div>
+                    <span class="barra-vida__division barra-vida__division--1"></span>
+                    <span class="barra-vida__division barra-vida__division--2"></span>
+                    <span class="barra-vida__division barra-vida__division--3"></span>
+                </div>
+
+                <div id="barra-enemigo-0-4" class="barra-vida barra-vida--enemigo barra-vida--vacia" style="display: none;">
+                    <div class="barra-vida__relleno"></div>
+                    <span class="barra-vida__division barra-vida__division--1"></span>
+                    <span class="barra-vida__division barra-vida__division--2"></span>
+                    <span class="barra-vida__division barra-vida__division--3"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ventana final: Jugar de nuevo -->
+    <div id="pantalla-reinicio" class="panel-reinicio" style="display: none;">
+        <h2 class="titulo-reinicio">Jugar de nuevo</h2>
+        <div class="acciones-finales">
+            <button id="btn-reintentar" class="btn-reinicio">REINTENTAR</button>
+            <button id="btn-salir" class="btn-reinicio">SALIR</button>
+        </div>
+    </div>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+
 </body>
 </html>

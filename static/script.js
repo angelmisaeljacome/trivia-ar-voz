@@ -1,3 +1,4 @@
+// Inicializacion de variables
 let estadoActual = null;
 let esperandoRespuesta = false;   // true solo mientras el micrófono debe estar activo
 let recognition = null;
@@ -8,15 +9,40 @@ let intervaloPregunta = null;     // actualiza el contador de 10s en pantalla
 let tiempoRestantePregunta = 10;
 const utterancesVivos = [];       // evita que el navegador los elimine antes de terminar
 
+// Dom elementos
+const btnPanelInicio = document.getElementById('pantalla-iniciar');
+const btnIniciar = document.getElementById('btn-iniciar');
+
+// Barras de vida del jugador, tiene 5 versiones, cada una muestra un estado de la vida
+const barraVida4_4Jugador = document.getElementById('barra-jugador-completa');
+const barraVida3_4Jugador = document.getElementById('barra-jugador-3-4');
+const barraVida2_4Jugador = document.getElementById('barra-jugador-2-4');
+const barraVida1_4Jugador = document.getElementById('barra-jugador-1-4');
+const barraVidaVaciaJugador = document.getElementById('barra-jugador-0-4');
+
+// Barras de vida del enemigo, tiene 5 versiones, cada una muestra un estado de la vida
+const barraVida4_4Enemigo = document.getElementById('barra-enemigo-completa');
+const barraVida3_4Enemigo = document.getElementById('barra-enemigo-3-4');
+const barraVida2_4Enemigo = document.getElementById('barra-enemigo-2-4');
+const barraVida1_4Enemigo = document.getElementById('barra-enemigo-1-4');
+const barraVidaVaciaEnemigo = document.getElementById('barra-enemigo-0-4');
+
+const panelReinicio = document.getElementById('pantalla-reinicio');
+const btnReiniciar = document.getElementById('btn-reintentar');
+const btnSalir = document.getElementById('btn-salir');
+
 const DURACION_PREGUNTA_SEG = 10;
 const DURACION_ENEMIGO_ELIMINADO_MS = 4000;
 
 window.addEventListener('DOMContentLoaded', () => {
-    cargarEstadoInicial();
-});
+    
+        cargarEstadoInicial();
+    }
+);
 
 // MODELOS.GLB
 
+// Funcion que regresa un modelo para el jugador dependiendo de el estado actual
 function rutaModeloJugador(estadoJugador) {
     const mapa = {
         espera: '/static/caballeroEspera.glb',
@@ -28,43 +54,59 @@ function rutaModeloJugador(estadoJugador) {
     return mapa[estadoJugador] || '/static/caballeroEspera.glb';
 }
 
+// Regresa un nuevo modelo para el enemigo dependiendo un estado
 function rutaModeloEnemigo(enemigo, resultado) {
+    // Si no se puede acceder al modelo solicitado entonces se regresa otro de un zombie
     if (!enemigo) return '/static/zombieEspera.glb';
+    // Si el enemigo esta derrotado se regresa su modelo de enemigo derrotado
     if (enemigo.derrotado) return '/static/EnemigoEliminado.glb';
-
+    // Se regresa un modelo dinamicamente dependiendo del resultado
     const sufijo = resultado === 'correcto' ? 'Correcto'
                  : resultado === 'incorrecto' ? 'Incorrecto'
                  : 'Espera';
     return `/static/${enemigo.clave_modelo}${sufijo}.glb`;
 }
 
+// Funcion que muestra los modelos del jugador y del enemigo 
 function aplicarModelos(data) {
     const avatar = document.getElementById('objeto-avatar');
     const enemigoObj = document.getElementById('objeto-enemigo-1');
 
+    // Se accede al modelo del avatar y se muestra en pantalla.
     if (avatar) {
         avatar.setAttribute('visible', 'true');
         avatar.setAttribute('gltf-model', rutaModeloJugador(data.modelo_jugador_estado));
     }
 
+    // Si se accede al modelo del enemigo se muestra en pantalla y se regresa 
     if (enemigoObj && data.enemigo) {
         enemigoObj.setAttribute('visible', 'true');
         enemigoObj.setAttribute('gltf-model', rutaModeloEnemigo(data.enemigo, data.resultado));
     }
 }
 
+//  Actualiza el indicador de vida del avatar y del enemigo en Realidad virtual
 function actualizarVidas(data) {
+    //
+    cambiarEstadoVidaJugador(data.vida_avatar);
+    //Inicializa el DOM
     const txtAvatar = document.getElementById('texto-vida-avatar');
+    // Obtiene acceso al elemento y le otorga un nuevo valor, mediante el patron llave - valor
     if (txtAvatar) {
         txtAvatar.setAttribute('value', `Caballero: ${data.vida_avatar}%`);
     }
 
+    cambiarEstadoVidaEnemigo(data.enemigo.vida)
+    // Se accede al indicador de vida del enemigo y se actualiza
     const txtEnemigo = document.getElementById('texto-vida-e1');
     if (txtEnemigo && data.enemigo) {
+        // Se detecta si el enemigo es un jefe, si lo es se guarda la etiqueta en la variable
         const etiquetaJefe = data.enemigo.es_jefe ? ' [JEFE]' : '';
+        // Si la vida del enemigo se agoto entonces el indicador de vida pasa a ser " Eliminado "
         if (data.enemigo.derrotado || data.enemigo.vida <= 0) {
             txtEnemigo.setAttribute('value', `${data.enemigo.nombre}: Eliminado`);
         } else {
+            // ?
             txtEnemigo.setAttribute(
                 'value',
                 `${data.enemigo.nombre}${etiquetaJefe}: ${data.enemigo.vida}% (${data.enemigo.aciertos}/${data.enemigo.meta_aciertos})`
@@ -75,13 +117,16 @@ function actualizarVidas(data) {
 
 //TEMPORIZADOR DE PREGUNTA
 
+// Funcion que actualiza el indicador de tiempo para cada pregunta
 function actualizarTextoTiempo() {
     const elTiempo = document.getElementById('tiempo-pregunta');
     if (!elTiempo) return;
+    // Se muestra en pantalla el temporizador y se le asigna una nueva cantidad de tiempo
     elTiempo.style.display = 'block';
     elTiempo.innerText = `Tiempo: ${tiempoRestantePregunta}s`;
 }
 
+// Oculta el indicador de tiempo
 function ocultarTiempoPregunta() {
     const elTiempo = document.getElementById('tiempo-pregunta');
     if (elTiempo) {
@@ -89,6 +134,7 @@ function ocultarTiempoPregunta() {
     }
 }
 
+// Funcion que detiene el temporizador de la pregunta
 function detenerTemporizadorPregunta() {
     if (intervaloPregunta) {
         clearInterval(intervaloPregunta);
@@ -96,20 +142,26 @@ function detenerTemporizadorPregunta() {
     }
 }
 
+// Funcion que habilita el temporizador y la logica para que transcurra el tiempo
 function iniciarTemporizadorPregunta() {
+    // Detiene el temporizador de la pregunta
     detenerTemporizadorPregunta();
+    // Se obtiene la duracion restante para esa pregunta
     tiempoRestantePregunta = DURACION_PREGUNTA_SEG;
+    // Se actualia el texto del indicador de tiempo para la pregunta
     actualizarTextoTiempo();
-
+    // Se verifica si el juega esta terminado entonces se detiene el temporizador y termina el flujo de ejecucion
     intervaloPregunta = setInterval(() => {
         if (!esperandoRespuesta || (estadoActual && estadoActual.juego_terminado)) {
             detenerTemporizadorPregunta();
             return;
         }
 
+        // Disminuye el tiempo restante en una unidad y luego muestra el tiempo restante
         tiempoRestantePregunta--;
         actualizarTextoTiempo();
 
+        // Si el tiempo llega a cero entonces se detiene el temporizador y se deshabilita el microfono
         if (tiempoRestantePregunta <= 0) {
             detenerTemporizadorPregunta();
             detenerEscucha();
@@ -121,18 +173,24 @@ function iniciarTemporizadorPregunta() {
 
 //INICIO Y REINICIO
 
+// Funcion que realiza una solicitud al servidor y obtiene el estado inicial del juego
 function cargarEstadoInicial() {
+    // Se limpia el indicador de tiempo actual
     limpiarTemporizadores();
     fetch('/api/estado')
         .then(res => res.json())
         .then(data => {
+            // Se guarda el estado inicial
             estadoActual = data;
+            // Se actualizan las vidas
             actualizarVidas(data);
+            // Se pronuncia la pregunta y se habilita el microfono
             leerPreguntaYEscuchar(data);
         })
         .catch(err => console.error("Error cargando estado:", err));
 }
 
+// Funcion que reinicia el juego
 function reiniciarJuego() {
     limpiarTemporizadores();
     detenerEscucha();
@@ -141,12 +199,15 @@ function reiniciarJuego() {
     fetch('/api/reiniciar', { method: 'POST' })
         .then(res => res.json())
         .then(() => {
+            // Si se obtiene una respuesta entonces se oculta el boton de reinicio
             document.getElementById('btn-reiniciar').style.display = 'none';
+            // Se carga el estado inicial de la historia
             cargarEstadoInicial();
         })
         .catch(err => console.error("Error reiniciando juego:", err));
 }
 
+// Se limpia el temporizador
 function limpiarTemporizadores() {
     if (transicionEnemigoTimer) {
         clearTimeout(transicionEnemigoTimer);
@@ -158,16 +219,19 @@ function limpiarTemporizadores() {
 
 // VOZ (HABLAR)
 
+// Se cancela el habla de la computadora
 function detenerHabla() {
     hablaId++;
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 }
 
+// La computadora reproduce el sonido
 function hablar(texto, callbackFin) {
     if (!('speechSynthesis' in window)) {
         if (callbackFin) callbackFin();
         return;
     }
+
 
     const synth = window.speechSynthesis;
     synth.cancel();
@@ -181,6 +245,7 @@ function hablar(texto, callbackFin) {
     let terminado = false;
     let watchdog = null;
 
+    // Se termina de reproducir el audio.
     const terminar = () => {
         if (terminado) return;
         terminado = true;
@@ -206,8 +271,10 @@ function hablar(texto, callbackFin) {
 
 // VOZ (ESCUCHAR)
 
+// Se detiene el microfono en escucha
 function detenerEscucha() {
     sesionVoz++;
+    // Se declara la bandera en false, lo cual representa que el microfono no debe estar activado
     esperandoRespuesta = false;
     if (recognition) {
         try { recognition.abort(); } catch (e) {}
@@ -215,9 +282,10 @@ function detenerEscucha() {
     }
 }
 
+// Se habilita el microfono para escucha y actualiza el indicador en el HUD, ademas se obtiene el audio recuperado y se envia al servidor
 function iniciarEscucha() {
     if (!esperandoRespuesta) return;
-
+    // Se habilita el microfono para el reconocimiento de voz
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
         alert("Tu navegador no soporta reconocimiento de voz. Usa Google Chrome actualizado.");
@@ -231,16 +299,19 @@ function iniciarEscucha() {
     const miSesion = sesionVoz;
     const esVigente = () => miSesion === sesionVoz && esperandoRespuesta;
 
+    // Se crea la entidad para el reconocimiento de texto y se configura
     const rec = new SpeechRecognition();
     rec.lang = 'es-ES';
     rec.interimResults = false;
     rec.maxAlternatives = 1;
 
+    // Si se puede iniciar el reconocimiento por voz entonces muestra el mensaje en pantalla hablando ahora
     rec.onstart = function () {
         if (!esVigente()) return;
         document.getElementById('estado-texto').innerText = "🎤 Te escucho... Habla ahora";
     };
 
+    // Se procesa lo que el usuario dijo y se detiene el reconocimiento por voz y se envian los datos al servidor
     rec.onresult = function (event) {
         if (!esVigente()) return;
         const texto = event.results[0][0].transcript.toLowerCase();
@@ -251,6 +322,7 @@ function iniciarEscucha() {
         enviarRespuestaAlServidor(texto);
     };
 
+    // Se imprimen errores en consola y se envia el error en caso de que el usuario no permita el uso del microfono
     rec.onerror = function (event) {
         if (!esVigente()) return;
         console.warn("Aviso de reconocimiento:", event.error);
@@ -259,13 +331,15 @@ function iniciarEscucha() {
         }
     };
 
+    // ?
     rec.onend = function () {
         if (!esVigente()) return;
         setTimeout(() => {
             if (esVigente()) iniciarEscucha();
         }, 300);
     };
-
+    
+    // ?
     recognition = rec;
 
     try {
@@ -279,11 +353,12 @@ function iniciarEscucha() {
 
 //FLUJO DEL JUEGO 
 
+// Actualiza la informacion de la pregunta actual, obtiene los modelos correspondientes e inicia el reconocimiento por voz y el temporizador
 function leerPreguntaYEscuchar(data) {
     detenerEscucha();
     detenerTemporizadorPregunta();
     ocultarTiempoPregunta();
-
+    // Se actualiza la informacion de la pregunta
     document.getElementById('pregunta-titulo').innerText = `Pregunta #${data.numero_pregunta}`;
     document.getElementById('pregunta-texto').innerText = data.pregunta_texto;
     document.getElementById('estado-texto').innerText = data.mensaje || "Leyendo pregunta...";
@@ -296,6 +371,7 @@ function leerPreguntaYEscuchar(data) {
     };
     aplicarModelos(dataEspera);
 
+    // Se pronuncia la siguiente pregunta y se inicia la escucha y el temporizador
     hablar(`Siguiente pregunta: ${data.pregunta_texto}`, () => {
         if (!estadoActual || !estadoActual.juego_terminado) {
             esperandoRespuesta = true;
@@ -305,6 +381,7 @@ function leerPreguntaYEscuchar(data) {
     });
 }
 
+// Funcion que realiza una solicitud al servidor y
 function enviarRespuestaAlServidor(texto) {
     detenerTemporizadorPregunta();
     ocultarTiempoPregunta();
@@ -318,6 +395,7 @@ function enviarRespuestaAlServidor(texto) {
         .then(res => res.json())
         .then(data => manejarResultado(data))
         .catch(err => {
+            // Si hubo un error al procesar la pregunta se repite de nuevo y se vuelve a capturar la respuesta del usuario.
             console.error("Error enviando respuesta:", err);
             esperandoRespuesta = true;
             iniciarEscucha();
@@ -325,6 +403,7 @@ function enviarRespuestaAlServidor(texto) {
         });
 }
 
+// Funcion que se encarga de actualizar el hud de informacion, la vida, los modelos y 
 function manejarResultado(data) {
     estadoActual = data;
     actualizarVidas(data);
@@ -368,4 +447,46 @@ function manejarResultado(data) {
         : `Incorrecto. Llevas ${data.fallos_jugador} de ${data.max_fallos_jugador} fallos.`;
 
     hablar(feedback, () => leerPreguntaYEscuchar(data));
+}
+
+function cambiarEstadoVidaJugador(cantidadVida){
+    const numVida = Number(cantidadVida);
+    const contenedoresPasados=document.getElementsByClassName('barra-vida--jugador')
+    Array.from(contenedoresPasados).forEach(element => {
+        element.style.display="none";
+    })
+
+    if(numVida >= 100){
+        barraVida4_4Jugador.style.display="block"
+    }
+    else if(numVida >= 67 && numVida < 100){
+        barraVida3_4Jugador.style.display="block"
+    }
+    else if(numVida >= 34 && numVida < 67 ){
+        barraVida2_4Jugador.style.display="block"
+    }
+    else if(numVida >= 1 && numVida < 34){
+        barraVida1_4Jugador.style.display="block"
+    }
+}
+
+function cambiarEstadoVidaEnemigo(cantidadVida){
+    const numVida = Number(cantidadVida);
+    const contenedoresPasados=document.getElementsByClassName('barra-vida--enemigo')
+    Array.from(contenedoresPasados).forEach(element => {
+        element.style.display="none";
+    })
+
+    if(numVida >= 100){
+        barraVida4_4Enemigo.style.display="block"
+    }
+    else if(numVida >= 67 && numVida < 100){
+        barraVida3_4Enemigo.style.display="block"
+    }
+    else if(numVida >= 34 && numVida < 67 ){
+        barraVida2_4Enemigo.style.display="block"
+    }
+    else if(numVida >= 1 && numVida < 34){
+        barraVida1_4Enemigo.style.display="block"
+    }
 }
